@@ -1,0 +1,55 @@
+# SSL certificates and keys (sensitive data)
+ssl/
+*.pem
+*.key
+*.crt
+*.csr
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.production
+
+# Docker volumes data
+n8n_data/
+postgres_data/
+
+# Backups (may contain sensitive data)
+backups/
+*.backup
+*.sql.gz
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Let's Encrypt certificates (will be generated on server)
+letsencrypt/
+
+# Node modules (if any)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime files
+*.pid
+*.sock
+
+# Docker override files (may contain local customizations)
+docker-compose.override.yml
+
+# Personal notes and configs
+notes.txt
+config.local.*

@@ -1,0 +1,75 @@
+services:
+  # n8n instances (scalable)
+  n8n:
+    image: n8nio/n8n:latest
+    restart: always
+    environment:
+      # Webhook configuration - HTTPS
+      WEBHOOK_URL: https://n8n.abnerfonseca.com.br
+      
+      # Security
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-your-encryption-key-here}
+      
+      # General settings
+      GENERIC_TIMEZONE: ${TIMEZONE:-America/Sao_Paulo}
+      N8N_LOG_LEVEL: info
+      
+      # Basic settings
+      N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
+      
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - n8n-network
+    deploy:
+      replicas: 2  # Otimizado para e2-micro
+      resources:
+        limits:
+          memory: 400M  # Mais memória por instância (2 em vez de 3)
+          cpus: '0.8'   
+        reservations:
+          memory: 300M  
+          cpus: '0.4'   
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Nginx Load Balancer with SSL
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"    # HTTP redirect
+      - "443:443"  # HTTPS
+    volumes:
+      - ./nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - n8n-network
+    depends_on:
+      - n8n
+    deploy:
+      resources:
+        limits:
+          memory: 100M   
+          cpus: '0.2'   
+        reservations:
+          memory: 50M   
+          cpus: '0.1'   
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  n8n_data:
+
+networks:
+  n8n-network:
+    driver: bridge

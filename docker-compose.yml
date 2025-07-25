@@ -1,0 +1,74 @@
+
+services:
+  # n8n instances (scalable)
+  n8n:
+    image: n8nio/n8n:latest
+    restart: always
+    environment:
+      # Webhook configuration
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:8080}
+      
+      # Security
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-your-encryption-key-here}
+      
+      # General settings
+      GENERIC_TIMEZONE: ${TIMEZONE:-America/Sao_Paulo}
+      N8N_LOG_LEVEL: info
+      
+      # Basic settings
+      N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
+      
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - n8n-network
+    deploy:
+      replicas: 3  # Scale to 3 instances
+      resources:
+        limits:
+          memory: 280M  # ~280MB por instância n8n
+          cpus: '0.6'   # 60% CPU por instância
+        reservations:
+          memory: 200M  # Mínimo garantido
+          cpus: '0.3'   # CPU mínima
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - n8n-network
+    depends_on:
+      - n8n
+    deploy:
+      resources:
+        limits:
+          memory: 80M   # 80MB para nginx (leve)
+          cpus: '0.2'   # 20% CPU
+        reservations:
+          memory: 50M   # Mínimo garantido
+          cpus: '0.1'   # CPU mínima
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  n8n_data:
+
+networks:
+  n8n-network:
+    driver: bridge
