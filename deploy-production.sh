@@ -240,8 +240,7 @@ http {
     # Upstream para load balancing
     upstream n8n_backend {
         least_conn;
-        server n8n_n8n_1:5678 max_fails=3 fail_timeout=30s;
-        server n8n_n8n_2:5678 max_fails=3 fail_timeout=30s;
+        server n8n:5678 max_fails=3 fail_timeout=30s;
         keepalive 32;
     }
     
